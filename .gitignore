@@ -1,0 +1,12 @@
+# vs code config and cache
+__pycache__
+.vscode
+
+# temporary files
+/tmp
+/test.*
+
+# build
+/build
+/dist
+*.egg-info
