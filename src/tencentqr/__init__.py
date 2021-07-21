@@ -1,6 +1,8 @@
 import re
 from dataclasses import dataclass
 from random import random
+from time import sleep
+from typing import Dict, Union
 
 import requests
 from requests.exceptions import HTTPError
@@ -124,7 +126,27 @@ class TencentQR:
         if r[0] == 0: self.login_url = r[2]
         return r
 
-    def login(self) -> str:
+    def login(self, all_cookie=False) -> Union[Dict, str]:
         r = self.session.get(self.login_url, allow_redirects=False)
         if r.status_code != 302: raise HTTPError(response=r)
-        return r.cookies['p_skey']
+        return r.cookies if all_cookie else r.cookies['p_skey']
+
+    def loop(self, refresh_time=6, polling_freq=3, all_cookie=False):
+        from .constants import StatusCode
+        i = -1
+        r = [StatusCode.Expired]
+        while True:
+            if r[0] == StatusCode.Expired:
+                # expired
+                i += 1
+                if i > refresh_time: raise TimeoutError
+                yield self.show()
+            elif r[0] == StatusCode.Authenticated:
+                # login success
+                yield self.login(all_cookie)
+                return
+            else:
+                if r[0] not in [StatusCode.Waiting, StatusCode.Scanned]:
+                    print(f"Code {r[0]}: {r[4]}")  # show msg
+            sleep(polling_freq)
+            r = self.pollStat()

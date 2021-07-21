@@ -10,7 +10,7 @@ A simulation of QR protocol for QR login
 from tencentqr import TencentQR
 from tencentqr.constants import APPID, QzoneProxy
 
-sim = TencentQR(APPID['qzone'], QzoneProxy)
+sim = TencentQR(APPID.Qzone, QzoneProxy)
 png = sim.request().show()
 with open('tmp/qr.png', 'wb') as f:
     f.write(png)
@@ -19,14 +19,24 @@ with open('tmp/qr.png', 'wb') as f:
 ### Poll Status of the latest QR
 
 ~~~ python
+from tencentqr.constants import StatusCode
+
 for _ in range(10):
     r = sim.pollStat()
-    if r[0] == 65: # expire
-        with open('tmp/qr.png', 'wb') as f: f.write(sim.show())
-    elif r[0] == 0: break   # login success
+    if r[0] == StatusCode.Expired: 
+        # expired
+        with open('tmp/qr.png', 'wb') as f: 
+            f.write(sim.show())
+    elif r[0] == StatusCode.Authenticated: 
+        # login success
+        break   
     else: 
-        if r[0] != 66: print(r[4])  # other code
-        sleep(3000)
+        if r[0] != StatusCode.Waiting: 
+            print(r[4])  # show msg
+    sleep(3000)
+else:
+    # Timeout logic
+    raise TimeoutError
 ~~~
 
 ### Login
@@ -35,6 +45,20 @@ for _ in range(10):
 r = sim.pollStat()
 if r[0] == 0:
     p_skey = sim.login()
+~~~
+
+### Loop: Simpler api
+
+~~~ python
+try:
+    for i in self.q.loop():
+        if isinstance(i, bytes):
+            with open('tmp/r.png', 'wb') as f:
+                f.write(i)
+except TimeoutError:
+    # Timeout logic
+else:
+    p_skey = i
 ~~~
 
 ## License
