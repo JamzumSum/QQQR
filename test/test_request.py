@@ -1,11 +1,11 @@
 from tencentqr import TencentQR
-from tencentqr.constants import APPID, QzoneProxy
+from tencentqr.constants import QzoneAppid, QzoneProxy
 from unittest import TestCase
 
 
 class TestRequest(TestCase):
     def setUp(self) -> None:
-        self.q = TencentQR(APPID.Qzone, QzoneProxy)
+        self.q = TencentQR(QzoneAppid, QzoneProxy)
 
     def testNorm(self):
         self.q.request()
@@ -36,7 +36,8 @@ class TestRequest(TestCase):
                 if isinstance(i, bytes):
                     with open('tmp/r.png', 'wb') as f:
                         f.write(i)
-        except TimeoutError: pass
+        except TimeoutError:
+            pass
         else:
             print(i)
             self.assertIsInstance(i, str)

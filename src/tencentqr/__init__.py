@@ -29,12 +29,16 @@ class Proxy:
     s_url: str
 
 
-class TencentQR:
-    daid = 5
+@dataclass(frozen=True)
+class APPID:
+    appid: int
+    daid: int
 
-    def __init__(self, appid: int, proxy: Proxy, info: PT_QR_APP = None) -> None:
+
+class TencentQR:
+    def __init__(self, app: APPID, proxy: Proxy, info: PT_QR_APP = None) -> None:
         self.session = requests.Session()
-        self.appid = appid
+        self.app = app
         self.proxy = proxy
         self.info = info if info else PT_QR_APP()
         self.header = {'DNT': '1', 'Referer': 'https://i.qq.com/', 'User-Agent': UA}
@@ -43,12 +47,12 @@ class TencentQR:
         data = {
             'hide_title_bar': 1,
             'style': 22,
-            "daid": self.daid,
+            "daid": self.app.daid,
             "low_login": 0,
             "qlogin_auto_login": 1,
             'no_verifyimg': 1,
             'link_target': 'blank',
-            'appid': self.appid,
+            'appid': self.app.appid,
             'target': 'self',
             's_url': self.proxy.s_url,
             'proxy_url': self.proxy.proxy_url,
@@ -66,14 +70,14 @@ class TencentQR:
 
     def show(self):
         data = {
-            'appid': self.appid,
+            'appid': self.app.appid,
             'e': 2,
             'l': 'M',
             's': 3,
             'd': 72,
             'v': 4,
             't': random(),
-            'daid': self.daid,
+            'daid': self.app.daid,
             'pt_3rd_aid': 0,
         }
         r = self.session.get(SHOW_QR, params=data, headers=self.header)
@@ -112,8 +116,8 @@ class TencentQR:
             'js_type': 1,
             'login_sig': "",
             'pt_uistyle': 40,
-            'aid': self.appid,
-            'daid': self.daid,
+            'aid': self.app.appid,
+            'daid': self.app.daid,
             # 'ptdrvs': 'JIkvP2N0eJUzU3Owd7jOvAkvMctuVfODUMSPltXYZwCLh8aJ2y2hdSyFLGxMaH1U',
             # 'sid': 6703626068650368611,
             'has_onekey': 1,
@@ -129,7 +133,10 @@ class TencentQR:
     def login(self, all_cookie=False) -> Union[Dict, str]:
         r = self.session.get(self.login_url, allow_redirects=False)
         if r.status_code != 302: raise HTTPError(response=r)
-        return r.cookies if all_cookie else r.cookies['p_skey']
+        if all_cookie:
+            return r.cookies.get_dict()
+        else:
+            return r.cookies['p_skey']
 
     def loop(self, refresh_time=6, polling_freq=3, all_cookie=False):
         from .constants import StatusCode

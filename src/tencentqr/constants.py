@@ -2,7 +2,7 @@
 date: 2021-07-20
 '''
 
-from . import Proxy
+from . import Proxy, APPID
 from enum import IntEnum
 
 QzoneProxy = Proxy(
@@ -10,9 +10,7 @@ QzoneProxy = Proxy(
     'https://qzs.qzone.qq.com/qzone/v5/loginsucc.html?para=izone'
 )
 
-
-class APPID(IntEnum):
-    Qzone = 549000912
+QzoneAppid = APPID(549000912, 5)
 
 
 class StatusCode(IntEnum):
