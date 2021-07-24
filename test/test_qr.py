@@ -1,11 +1,11 @@
-from tencentqr import TencentQR
-from tencentqr.constants import QzoneAppid, QzoneProxy
+from tencentlogin.qr import QRLogin
+from tencentlogin.constants import QzoneAppid, QzoneProxy
 from unittest import TestCase
 
 
-class TestRequest(TestCase):
+class TestQR(TestCase):
     def setUp(self) -> None:
-        self.q = TencentQR(QzoneAppid, QzoneProxy)
+        self.q = QRLogin(QzoneAppid, QzoneProxy)
 
     def testNorm(self):
         self.q.request()

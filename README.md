@@ -1,16 +1,16 @@
-# TencentQR
+# TenSent Login Simulation
 
-A simulation of QR protocol for QR login
+A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol
 
-## Usage
+## QR Login
 
 ### Get a QRcode
 
 ~~~ python
-from tencentqr import TencentQR
-from tencentqr.constants import APPID, QzoneProxy
+from tencentlogin.qr import QRLogin
+from tencentlogin.constants import APPID, QzoneProxy
 
-sim = TencentQR(APPID.Qzone, QzoneProxy)
+sim = QRLogin(APPID.Qzone, QzoneProxy)
 png = sim.request().show()
 with open('tmp/qr.png', 'wb') as f:
     f.write(png)
@@ -19,7 +19,7 @@ with open('tmp/qr.png', 'wb') as f:
 ### Poll Status of the latest QR
 
 ~~~ python
-from tencentqr.constants import StatusCode
+from tencentlogin.constants import StatusCode
 
 for _ in range(10):
     r = sim.pollStat()
@@ -47,7 +47,7 @@ if r[0] == 0:
     p_skey = sim.login()
 ~~~
 
-### Loop: Simpler api
+### Loop: Simpler API
 
 ~~~ python
 try:
@@ -60,6 +60,33 @@ except TimeoutError:
 else:
     p_skey = i
 ~~~
+
+## UP Login
+
+> NOTE: no captcha, no login protect, etc.
+
+### Login Directly
+
+~~~ python
+import yaml
+from tencentlogin.up import UPLogin, User
+from tencentlogin.constants import QzoneAppid, QzoneProxy
+
+with open('me.yml') as f:
+    q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
+
+r = self.q.check()
+if r[0] == 0:
+    p_skey = self.q.login(r)
+else:
+    raise RuntimeError(f"Code {r[0]}: {r[4]}")
+~~~
+
+## Dependencies
+
+- QR login requires `requests`, which is mostly a standard library.
+- Additionally, UP login requires `PyExecJS`, which needs JS runtime.
+  - `Node.js` is used as our test environment.
 
 ## License
 

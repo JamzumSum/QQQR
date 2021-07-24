@@ -1,11 +1,11 @@
 import re
-from dataclasses import dataclass
 from random import random
 from time import sleep
 from typing import Dict, Union
 
-import requests
 from requests.exceptions import HTTPError
+
+from .. import *
 
 SHOW_QR = 'https://ssl.ptlogin2.qq.com/ptqrshow'
 XLOGIN_URL = 'https://xui.ptlogin2.qq.com/cgi-bin/xlogin'
@@ -15,34 +15,7 @@ LOGIN_URL = 'https://ptlogin2.qzone.qq.com/check_sig'
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.70"
 
 
-@dataclass(frozen=True)
-class PT_QR_APP:
-    app: str = ""
-    link: str = ""
-    register: str = ""
-    help: str = ""
-
-
-@dataclass(frozen=True)
-class Proxy:
-    proxy_url: str
-    s_url: str
-
-
-@dataclass(frozen=True)
-class APPID:
-    appid: int
-    daid: int
-
-
-class TencentQR:
-    def __init__(self, app: APPID, proxy: Proxy, info: PT_QR_APP = None) -> None:
-        self.session = requests.Session()
-        self.app = app
-        self.proxy = proxy
-        self.info = info if info else PT_QR_APP()
-        self.header = {'DNT': '1', 'Referer': 'https://i.qq.com/', 'User-Agent': UA}
-
+class QRLogin(LoginBase):
     def request(self):
         data = {
             'hide_title_bar': 1,
