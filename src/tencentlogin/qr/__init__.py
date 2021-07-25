@@ -112,7 +112,7 @@ class QRLogin(LoginBase):
             return r.cookies['p_skey']
 
     def loop(self, refresh_time=6, polling_freq=3, all_cookie=False):
-        from .constants import StatusCode
+        from ..constants import StatusCode
         i = -1
         r = [StatusCode.Expired]
         while True:
