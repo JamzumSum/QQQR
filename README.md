@@ -84,9 +84,7 @@ else:
 
 ## Dependencies
 
-- QR login requires `requests`, which is mostly a standard library.
-- Additionally, UP login requires `PyExecJS`, which needs JS runtime.
-  - `Node.js` is used as our test environment.
+- requests
 
 ## License
 

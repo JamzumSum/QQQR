@@ -104,7 +104,7 @@ class QRLogin(LoginBase):
         return r
 
     def login(self, all_cookie=False) -> Union[Dict, str]:
-        r = self.session.get(self.login_url, allow_redirects=False)
+        r = self.session.get(self.login_url, allow_redirects=False, headers=self.header)
         if r.status_code != 302: raise HTTPError(response=r)
         if all_cookie:
             return r.cookies.get_dict()

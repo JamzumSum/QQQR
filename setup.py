@@ -11,7 +11,7 @@ setup(
     url='https://github.com/JamzumSum/QQQR',
     license="AGPL-3.0",
     python_requires=">=3.8",  # for f-string and := op
-    install_requires=['requests', 'PyExecJS'],
+    install_requires=['requests'],
     packages=find_packages(where='src'),
     package_dir={"": 'src'},
 )

@@ -20,3 +20,4 @@ class TestRequest(TestCase):
         if r[0] == 0:
             k = self.q.login(r)
             self.assertTrue(k)
+            print(k)

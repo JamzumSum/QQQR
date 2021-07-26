@@ -1,4 +1,7 @@
+import os
 import re
+import tempfile
+from functools import partial
 from random import choice, random
 from time import time_ns
 
@@ -17,6 +20,40 @@ class User:
     pwd: str
 
 
+class ExecJS:
+    def __init__(self, node='node', *, js=None, path=None):
+        assert bool(js) ^ bool(path)
+
+        self.node = node
+        if path:
+            with open(path, encoding='utf8') as f:
+                js = f.read()
+        self.js = js
+        self.cache = None
+        self.f = None
+
+    def __call__(self, func: str, *args) -> str:
+        args = [str(i) for i in args]
+        if self.cache != (a := (func, *args)):
+            self.cache = a
+            quoted = (f"'{i}'" for i in args)
+            js = self.js + f'\nconsole.log({func}({",".join(quoted)}));'
+
+            if self.f: self.f.close()
+            self.f = tempfile.TemporaryFile('w+', encoding='utf8')
+            self.f.write(js)
+
+        with os.popen(f'{self.node} {self.f.name}') as console:
+            return console.read()
+
+    def __del__(self):
+        if self.f: self.f.close()
+
+    def bind(self, func: str, new=True):
+        n = ExecJS(self.node, js=self.js) if new else self
+        return partial(n.__call__, func)
+
+
 class UPLogin(LoginBase):
     def __init__(
         self, app: APPID, proxy: Proxy, user: User, info: PT_QR_APP = None
@@ -26,7 +63,7 @@ class UPLogin(LoginBase):
 
     def encodePwd(self, r) -> str:
         if not hasattr(self, 'getEncryption'):
-            js = self.session.get(LOGIN_JS).text
+            js = self.session.get(LOGIN_JS, headers=self.header).text
             funcs = re.search(
                 r"function\(module,exports,__webpack_require__\).*\}", js
             ).group(0)
@@ -35,10 +72,8 @@ class UPLogin(LoginBase):
             js += "function n(k) { var t, e = new Object; return a[k](t, e, n), e }\n"
             js += "function getEncryption(p, s, v) { var t, e = new Object; return a[9](t, e, n), e['default'].getEncryption(p, s, v, undefined) }"
 
-            import execjs
-            from functools import partial
-            js = execjs.compile(js)
-            self.getEncryption = partial(js.call, 'getEncryption')
+            js = ExecJS(js=js)
+            self.getEncryption = js.bind('getEncryption')
         salt = r[2].split('\\x')[1:]
         salt = [chr(int(i, 16)) for i in salt]
         salt = ''.join(salt)
@@ -69,7 +104,7 @@ class UPLogin(LoginBase):
             'r': random(),
             'pt_uistyle': 40,
         }
-        r = self.session.get(CHECK_URL, params=data)
+        r = self.session.get(CHECK_URL, params=data, headers=self.header)
         if r.status_code != 200: raise HTTPError(response=r)
 
         r = re.findall(r"'(.*?)'[,\)]", r.text)
@@ -110,14 +145,14 @@ class UPLogin(LoginBase):
             'ptdrvs': r[5],
             'sid': r[6],
         }
-        r = self.session.get(LOGIN_URL, params=data)
+        r = self.session.get(LOGIN_URL, params=data, headers=self.header)
         if r.status_code != 200: raise HTTPError(response=r)
 
         r = re.findall(r"'(.*?)'[,\)]", r.text)
         if r[0] != '0': raise RuntimeError(f"Code {r[0]}: {r[4]}")
 
         login_url = r[2]
-        r = self.session.get(login_url, allow_redirects=False)
+        r = self.session.get(login_url, allow_redirects=False, headers=self.header)
 
         if all_cookie:
             return r.cookies.get_dict()

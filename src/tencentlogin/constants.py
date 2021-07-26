@@ -14,7 +14,11 @@ QzoneAppid = APPID(549000912, 5)
 
 
 class StatusCode(IntEnum):
+    # Unified
     Authenticated = 0
+    # QR
     Expired = 65
     Waiting = 66
     Scanned = 67
+    # UP
+    WrongPwdOrUin = 3
