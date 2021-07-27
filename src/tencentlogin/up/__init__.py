@@ -1,5 +1,5 @@
-import os
 import re
+import subprocess
 import tempfile
 from functools import partial
 from random import choice, random
@@ -21,7 +21,7 @@ class User:
 
 
 class ExecJS:
-    def __init__(self, node='node', *, js=None, path=None):
+    def __init__(self, node: str = 'node', *, js=None, path=None):
         assert bool(js) ^ bool(path)
 
         self.node = node
@@ -43,8 +43,13 @@ class ExecJS:
             self.f = tempfile.TemporaryFile('w+', encoding='utf8')
             self.f.write(js)
 
-        with os.popen(f'{self.node} {self.f.name}') as console:
-            return console.read()
+        p = subprocess.Popen([*self.node.split(), self.f.name],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        if stderr:
+            raise RuntimeError(stderr.decode())
+        return stdout.decode()
 
     def __del__(self):
         if self.f: self.f.close()
@@ -55,6 +60,8 @@ class ExecJS:
 
 
 class UPLogin(LoginBase):
+    node = 'node'
+
     def __init__(
         self, app: APPID, proxy: Proxy, user: User, info: PT_QR_APP = None
     ) -> None:
@@ -72,7 +79,7 @@ class UPLogin(LoginBase):
             js += "function n(k) { var t, e = new Object; return a[k](t, e, n), e }\n"
             js += "function getEncryption(p, s, v) { var t, e = new Object; return a[9](t, e, n), e['default'].getEncryption(p, s, v, undefined) }"
 
-            js = ExecJS(js=js)
+            js = ExecJS(self.node, js=js)
             self.getEncryption = js.bind('getEncryption')
         salt = r[2].split('\\x')[1:]
         salt = [chr(int(i, 16)) for i in salt]
@@ -149,7 +156,7 @@ class UPLogin(LoginBase):
         if r.status_code != 200: raise HTTPError(response=r)
 
         r = re.findall(r"'(.*?)'[,\)]", r.text)
-        if r[0] != '0': raise RuntimeError(f"Code {r[0]}: {r[4]}")
+        if r[0] != '0': raise TencentLoginError(r[0], r[4])
 
         login_url = r[2]
         r = self.session.get(login_url, allow_redirects=False, headers=self.header)

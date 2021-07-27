@@ -32,3 +32,13 @@ class LoginBase:
         self.proxy = proxy
         self.info = info if info else PT_QR_APP()
         self.header = {'DNT': '1', 'Referer': 'https://i.qq.com/', 'User-Agent': UA}
+
+
+class TencentLoginError(RuntimeError):
+    def __init__(self, code: int, msg: str, *args: object) -> None:
+        self.code = code
+        self.msg = msg
+        super().__init__(*args)
+
+    def __str__(self) -> str:
+        return f"Code {self.code}: {self.msg}"

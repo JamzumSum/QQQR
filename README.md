@@ -8,9 +8,9 @@ A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol
 
 ~~~ python
 from tencentlogin.qr import QRLogin
-from tencentlogin.constants import APPID, QzoneProxy
+from tencentlogin.constants import QzoneAppid, QzoneProxy
 
-sim = QRLogin(APPID.Qzone, QzoneProxy)
+sim = QRLogin(QzoneAppid, QzoneProxy)
 png = sim.request().show()
 with open('tmp/qr.png', 'wb') as f:
     f.write(png)
