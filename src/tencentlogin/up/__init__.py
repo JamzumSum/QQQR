@@ -1,6 +1,5 @@
 import re
 import subprocess
-import tempfile
 from functools import partial
 from random import choice, random
 from time import time_ns
@@ -29,30 +28,21 @@ class ExecJS:
             with open(path, encoding='utf8') as f:
                 js = f.read()
         self.js = js
-        self.cache = None
-        self.f = None
 
     def __call__(self, func: str, *args) -> str:
-        args = [str(i) for i in args]
-        if self.cache != (a := (func, *args)):
-            self.cache = a
-            quoted = (f"'{i}'" for i in args)
-            js = self.js + f'\nconsole.log({func}({",".join(quoted)}));'
+        quoted = (f"'{i}'" for i in args)
+        js = self.js + f'\nconsole.log({func}({",".join(quoted)}));'
 
-            if self.f: self.f.close()
-            self.f = tempfile.TemporaryFile('w+', encoding='utf8')
-            self.f.write(js)
-
-        p = subprocess.Popen([*self.node.split(), self.f.name],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate()
+        p = subprocess.Popen(
+            *self.node.split(),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = p.communicate(js.encode())
         if stderr:
             raise RuntimeError(stderr.decode())
         return stdout.decode()
-
-    def __del__(self):
-        if self.f: self.f.close()
 
     def bind(self, func: str, new=True):
         n = ExecJS(self.node, js=self.js) if new else self
