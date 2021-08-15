@@ -1,12 +1,14 @@
 import re
-import subprocess
-from functools import partial
 from random import choice, random
 from time import time_ns
+from typing import Union
 
 from requests.exceptions import HTTPError
 
+from tencentlogin.constants import StatusCode
+
 from .. import *
+from jssupport.execjs import ExecJS
 
 CHECK_URL = "https://ssl.ptlogin2.qq.com/check"
 LOGIN_URL = 'https://ssl.ptlogin2.qq.com/login'
@@ -19,38 +21,9 @@ class User:
     pwd: str
 
 
-class ExecJS:
-    def __init__(self, node: str = 'node', *, js=None, path=None):
-        assert bool(js) ^ bool(path)
-
-        self.node = node
-        if path:
-            with open(path, encoding='utf8') as f:
-                js = f.read()
-        self.js = js
-
-    def __call__(self, func: str, *args) -> str:
-        quoted = (f"'{i}'" for i in args)
-        js = self.js + f'\nconsole.log({func}({",".join(quoted)}));'
-
-        p = subprocess.Popen(
-            *self.node.split(),
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        stdout, stderr = p.communicate(js.encode())
-        if stderr:
-            raise RuntimeError(stderr.decode())
-        return stdout.decode()
-
-    def bind(self, func: str, new=True):
-        n = ExecJS(self.node, js=self.js) if new else self
-        return partial(n.__call__, func)
-
-
 class UPLogin(LoginBase):
     node = 'node'
+    _captcha = None
 
     def __init__(
         self, app: APPID, proxy: Proxy, user: User, info: PT_QR_APP = None
@@ -59,6 +32,8 @@ class UPLogin(LoginBase):
         self.user = user
 
     def encodePwd(self, r) -> str:
+        assert self.user.pwd, 'password should not be empty'
+
         if not hasattr(self, 'getEncryption'):
             js = self.session.get(LOGIN_JS, headers=self.header).text
             funcs = re.search(
@@ -84,7 +59,7 @@ class UPLogin(LoginBase):
             HTTPError: [description]
 
         Returns:
-            list: (code, verifycode, salt, pt_verifysession_v1, isRandSalt, ptdrvs, sid)
+            list: (check_return_code, verifycode, salt, pt_verifysession_v1, isRandSalt, ptdrvs, session_id)
                 code = 0/2/3 hideVC; 
                 code = 1 showVC
         """
@@ -114,15 +89,24 @@ class UPLogin(LoginBase):
         #     '331616062933615434'
         # )
 
-    def login(self, r, all_cookie=False):
-        assert r[0] == 0
+    def login(self, r, all_cookie=False, pastcode: int = 0) -> Union[str, dict]:
         assert len(r) == 7
+
+        if r[0] == StatusCode.Authenticated: pass
+        elif r[0] == StatusCode.NeedCaptcha:
+            if pastcode == 0:
+                self.login(self.passVC(r), all_cookie, StatusCode.NeedCaptcha)
+        elif r[0] == StatusCode.NeedVerify:
+            if pastcode != StatusCode.NeedVerify:
+                raise NotImplementedError('wait for next version :D')
+        else:
+            raise TencentLoginError(r[0], r[4])
 
         data = {
             'u': self.user.uin,
             'p': self.encodePwd(r),
             'verifycode': r[1],
-            'pt_vcode_v1': 0,
+            'pt_vcode_v1': 1 if pastcode == StatusCode.NeedCaptcha else 0,
             'pt_verifysession_v1': r[3],
             'pt_randsalt': r[4],  # 2 or r[4]
             'u1': self.proxy.s_url,
@@ -146,12 +130,29 @@ class UPLogin(LoginBase):
         if r.status_code != 200: raise HTTPError(response=r)
 
         r = re.findall(r"'(.*?)'[,\)]", r.text)
-        if r[0] != '0': raise TencentLoginError(r[0], r[4])
+        r[0] = int(r[0])
+
+        if r[0] != StatusCode.Authenticated:
+            raise TencentLoginError(r[0], r[4])
 
         login_url = r[2]
         r = self.session.get(login_url, allow_redirects=False, headers=self.header)
-
         if all_cookie:
             return r.cookies.get_dict()
         else:
             return r.cookies['p_skey']
+
+    def captcha(self, sid: str):
+        if not self._captcha:
+            from .captcha import Captcha
+            self._captcha = Captcha(self.session, self.app.appid, sid, self.header)
+        return self._captcha
+
+    def passVC(self, r: list):
+        c = self.captcha(r[6])
+        c.prehandle(self.xlogin_url)
+        d = c.verify()
+        r[0] = 0
+        r[1] = d['randstr']
+        r[3] = d['ticket']
+        return r

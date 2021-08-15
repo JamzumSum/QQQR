@@ -63,7 +63,7 @@ else:
 
 ## UP Login
 
-> NOTE: no captcha, no login protect, etc.
+> NOTE: tcaptcha support is an experimental feature!
 
 ### Login Directly
 
@@ -76,15 +76,14 @@ with open('me.yml') as f:
     q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
 
 r = self.q.check()
-if r[0] == 0:
-    p_skey = self.q.login(r)
-else:
-    raise RuntimeError(f"Code {r[0]}: {r[4]}")
+p_skey = self.q.login(r)
 ~~~
 
 ## Dependencies
 
-- requests
+- `requests`
+- For User-Password login, `nodejs` is needed. `node` will be called by default.
+- For passing tcaptcha, `opencv-python` is needed.
 
 ## License
 

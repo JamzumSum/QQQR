@@ -17,25 +17,7 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 
 class QRLogin(LoginBase):
     def request(self):
-        data = {
-            'hide_title_bar': 1,
-            'style': 22,
-            "daid": self.app.daid,
-            "low_login": 0,
-            "qlogin_auto_login": 1,
-            'no_verifyimg': 1,
-            'link_target': 'blank',
-            'appid': self.app.appid,
-            'target': 'self',
-            's_url': self.proxy.s_url,
-            'proxy_url': self.proxy.proxy_url,
-            'pt_qr_app': self.info.app,
-            'pt_qr_link': self.info.link,
-            'self_regurl': self.info.register,
-            'pt_qr_help_link': self.info.help,
-            'pt_no_auth': 1,
-        }
-        r = self.session.get(XLOGIN_URL, params=data, headers=self.header)
+        r = self.session.get(self.xlogin_url, headers=self.header)
         if r.status_code != 200: raise HTTPError(response=r)
 
         self.local_token = int(r.cookies['pt_local_token'])

@@ -13,11 +13,13 @@ class TestRequest(TestCase):
         r = self.q.check()
         if r[0] == 0:
             p = self.q.encodePwd(r)
-        print(p)
+            self.assertTrue(p)
+            print(p)
+        else:
+            print(r)
 
     def testLogin(self):
         r = self.q.check()
-        if r[0] == 0:
-            k = self.q.login(r)
-            self.assertTrue(k)
-            print(k)
+        k = self.q.login(r)
+        self.assertTrue(k)
+        print(k)

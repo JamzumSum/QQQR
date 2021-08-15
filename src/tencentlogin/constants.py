@@ -21,4 +21,7 @@ class StatusCode(IntEnum):
     Waiting = 66
     Scanned = 67
     # UP
-    WrongPwdOrUin = 3
+    NeedCaptcha = 1
+    WrongPassword = 3
+    NeedVerify = 10009  # Means, notify the owner
+    RiskyNetwork = 23003

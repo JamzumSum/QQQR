@@ -5,6 +5,7 @@ __pycache__
 # temporary files
 /tmp
 /test.*
+/data
 
 # build
 /build
@@ -13,3 +14,6 @@ __pycache__
 
 # private data
 /config/user.yml
+
+# tools and scripts
+/script
