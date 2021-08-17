@@ -80,4 +80,13 @@ class TestVM(TestCase):
 
     def testGetInfo(self):
         self.assertTrue(d := self.v.getInfo())
+        self.assertTrue(d['info'])
+        print(d)
+
+    def testCollectData(self):
+        self.assertTrue(d := self.v.getData())
+        print(d)
+
+    def testGetCookie(self):
+        self.assertTrue(d := self.v.getCookie())
         print(d)

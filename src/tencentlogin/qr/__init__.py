@@ -16,13 +16,6 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like 
 
 
 class QRLogin(LoginBase):
-    def request(self):
-        r = self.session.get(self.xlogin_url, headers=self.header)
-        if r.status_code != 200: raise HTTPError(response=r)
-
-        self.local_token = int(r.cookies['pt_local_token'])
-        return self
-
     def show(self):
         data = {
             'appid': self.app.appid,

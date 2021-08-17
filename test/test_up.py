@@ -19,7 +19,7 @@ class TestRequest(TestCase):
             print(r)
 
     def testLogin(self):
-        r = self.q.check()
+        r = self.q.request().check()
         k = self.q.login(r)
         self.assertTrue(k)
         print(k)

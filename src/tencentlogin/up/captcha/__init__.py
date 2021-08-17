@@ -2,9 +2,9 @@ import base64
 import json
 import re
 from math import floor
-from random import random
-from time import time
-from urllib.parse import urlencode
+from random import randint, random
+from time import sleep, time
+from urllib.parse import unquote, urlencode
 
 from jssupport.execjs import ExecJS
 from jssupport.jsjson import json_loads
@@ -21,6 +21,7 @@ rnd6 = lambda: str(random())[2:8]
 
 
 def hex_add(h: str, o: int):
+    if h.endswith('#'): return h + str(o)
     return hex(int(h, 16) + o)[2:]
 
 
@@ -61,23 +62,40 @@ class ScriptHelper:
 class VM:
     vmAvailable = 0
     vmByteCode = 0
-    window = "var window=new Proxy({}, {get: (targ, name) => {if (targ[name] !== undefined) return targ[name]; else if (name == 'window') return window; else return global[name]}});"
 
-    def __init__(self, tdx: str) -> None:
-        self.tdx = ExecJS(js=self.window + tdx)
+    def __init__(self, tdx: str, header: dict) -> None:
+        assert 'User-Agent' in header
+        assert 'cookie' in header
+        assert 'Referer' in header
+        self.tdx = ExecJS(js=self.constructWindow(header) + tdx)
+        self._info = self.getInfo()
+
+    @staticmethod
+    def constructWindow(header: dict):
+        window = 'var href="%s",ua="%s",cookie="%s"\n' % (header['Referer'], header['User-Agent'], header['cookie'])
+        from pathlib import Path
+        with open(Path(__file__).parent / "window.js") as f:
+            window += f.read()
+        return window
 
     def getData(self):
-        # return self.tdx('window.TDC.getData')
-        return ""
+        return unquote(self.tdx('window.TDC.getData', True).strip())
 
     def getInfo(self):
         return json_loads(self.tdx('window.TDC.getInfo'))
 
     def setData(self, d: dict):
-        return self.tdx('window.TDC.setData', d)
+        self.tdx.addfunc('window.TDC.setData', d)
 
     def clearTc(self):
         return self.tdx('window.TDC.clearTc')
+
+    def getCookie(self):
+        return self.tdx.get('window.document.cookie').strip()
+
+    @property
+    def info(self):
+        return self._info
 
 
 class Captcha:
@@ -191,6 +209,7 @@ class Captcha:
         }
         r = self.session.get(SHOW_NEW_URL, params=data, headers=self.header)
         self.header['Referer'] = r.request.url
+        self.prehandleLoadTime = data['prehandleLoadTime']
         return r.text
 
     def getBlob(self, iframe: str):
@@ -200,7 +219,13 @@ class Captcha:
 
     def getTdx(self, iframe: str):
         js_url = ScriptHelper.tdx_js_url(iframe)
-        self.vm = VM(self.session.get(js_url, headers=self.header).text)
+        header = self.header.copy()
+        header['cookie'] = '; '.join(
+            f"{k}={v}" for k, v in self.session.cookies.get_dict().items()
+        )
+        self.vm = VM(self.session.get(js_url, headers=self.header).text, header=header)
+        c = re.search(r'TDC_itoken=([\w%]+);', self.vm.getCookie()).group(1)
+        self.session.cookies.update({'TDC_itoken': c})
 
     def matchMd5(self, iframe: str, powCfg: dict):
         if not hasattr(self, '_matchMd5'):
@@ -212,6 +237,24 @@ class Captcha:
         d = self._matchMd5(powCfg['prefix'], powCfg['md5'])
         d = json_loads(d.strip('\n'))
         return d['ans'], d['duration']
+
+    def imitateDrag(self, x: int):
+        assert x < 300
+        # 244, 1247
+        t = randint(1200, 1300)
+        n = randint(50, 65)
+        X = lambda i: randint(1, max(2, i // 10)) if i < n - 15 else randint(6, 12)
+        Y = lambda: -1 if (r := random()) < 0.1 else 1 if r < 0.2 else 0
+        T = lambda: randint(65, 280) if (r := random()) < 0.05 else randint(6, 10)
+        xs = ts = 0
+        drag = []
+        for i in range(n):
+            drag.append([xi := X(i), Y(), ti := T()])
+            xs += xi
+            ts += ti
+        drag.append([max(1, x - xs), Y(), max(1, t - ts)])
+        drag.reverse()
+        return drag
 
     def verify(self):
         """
@@ -231,12 +274,21 @@ class Captcha:
         Ians, duration = self.matchMd5(iframe, s.conf['powCfg'])
         self.getTdx(iframe)
 
+        waitEnd = time() + 0.6 * random() + 0.9
         rio = lambda url: self.session.get(url, headers=self.header).content
         j = Jigsaw(
             rio(s.cdn(0)), rio(s.cdn(1)), rio(s.cdn(2)), floor(int(s.conf['spt']))
         )
 
-        # TODO: setData
+        self.vm.setData({'clientType': 2})
+        self.vm.setData({'coordinate': [10, 24, 0.4103]})
+        self.vm.setData({
+            'trycnt': 1,
+            'refreshcnt': 0,
+            'slideValue': self.imitateDrag(floor(j.left * j.rate)),
+            'dragobj': 1
+        })
+        self.vm.setData({'ft': 'qf_7P_n_H'})
 
         data = {
             'aid': self.appid,
@@ -257,7 +309,7 @@ class Captcha:
             'uid': s.conf['uid'],
             'cap_cd': "",
             'rnd': rnd6(),
-            'prehandleLoadTime': time_s() - self.createIframeStart,
+            'prehandleLoadTime': self.prehandleLoadTime,
             'createIframeStart': self.createIframeStart,
             'subsid': self.subsid,
             'cdata': 0,
@@ -270,16 +322,19 @@ class Captcha:
             'vlg': f'{self.vm.vmAvailable}_{self.vm.vmByteCode}_1',
             'pow_answer': hex_add(s.conf['powCfg']['prefix'], Ians) if Ians else Ians,
             'pow_calc_time': duration,
-            'eks': self.vm.getInfo()['info'],
+            'eks': self.vm.info['info'],
             'tlg': len(collect := self.vm.getData()),
             s.conf['collectdata']: collect,
             # TODO: unknown
             # 'vData': 'gC*KM-*rjuHBcUjIt9kL6SV6JGdgfzMmP0BiFcaDg_7ctHwCjeoz4quIjb2FTgdJLBeCcKCZB_Mv7suXumolfmpSKZVIp7Un2N3b*fbwHX9aqRgjp5fmsgkf6aOgnhU_ttr_4xJZKVjStGX*hMwgBeHE_zuz-iDKy1coGdurLh559T6MoBdJdMAxtIlGJxAexbt6eDz3Aw5pD_tR01ElO7YY',
         }
+        sleep(max(0, waitEnd - time()))
         r = self.session.post(VERIFY_URL, data=data, headers=self.header)
 
         self.sess = None
         self.createIframeStart = 0
+        self.prehandleLoadTime = 0
+
         r = r.json()
         if int(r['errorCode']):
             raise RuntimeError(f"Code {r['errorCode']}: {r['errMessage']}")

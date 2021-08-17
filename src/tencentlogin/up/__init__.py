@@ -49,7 +49,7 @@ class UPLogin(LoginBase):
         salt = r[2].split('\\x')[1:]
         salt = [chr(int(i, 16)) for i in salt]
         salt = ''.join(salt)
-        return self.getEncryption(self.user.pwd, salt, r[1])
+        return self.getEncryption(self.user.pwd, salt, r[1]).strip()
 
     def check(self):
         """[summary]
@@ -116,7 +116,7 @@ class UPLogin(LoginBase):
             'g': 1,
             'from_ui': 1,
             'ptlang': 2052,
-            'action': f"2-{choice([1, 2])}-{int(time_ns() / 1e6)}",
+            'action': f"{3 if pastcode == StatusCode.NeedCaptcha else 2}-{choice([1, 2])}-{int(time_ns() / 1e6)}",
             # 'js_ver': 21072114,
             'js_type': 1,
             'login_sig': self.session.cookies.get('pt_login_sig', default=''),
@@ -126,10 +126,11 @@ class UPLogin(LoginBase):
             'ptdrvs': r[5],
             'sid': r[6],
         }
-        r = self.session.get(LOGIN_URL, params=data, headers=self.header)
-        if r.status_code != 200: raise HTTPError(response=r)
+        self.header['Referer'] = 'https://xui.ptlogin2.qq.com/'
+        response = self.session.get(LOGIN_URL, params=data, headers=self.header)
+        if response.status_code != 200: raise HTTPError(response=response)
 
-        r = re.findall(r"'(.*?)'[,\)]", r.text)
+        r = re.findall(r"'(.*?)'[,\)]", response.text)
         r[0] = int(r[0])
 
         if r[0] != StatusCode.Authenticated:

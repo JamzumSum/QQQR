@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from urllib.parse import urlencode
 
 from requests import Session
-from urllib.parse import urlencode
+from requests.exceptions import HTTPError
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.67"
 XLOGIN_URL = 'https://xui.ptlogin2.qq.com/cgi-bin/xlogin'
@@ -55,6 +56,13 @@ class LoginBase:
             'pt_qr_help_link': self.info.help,
             'pt_no_auth': 1,
         })
+
+    def request(self):
+        r = self.session.get(self.xlogin_url, headers=self.header)
+        if r.status_code != 200: raise HTTPError(response=r)
+
+        self.local_token = int(r.cookies['pt_local_token'])
+        return self
 
 
 class TencentLoginError(RuntimeError):
