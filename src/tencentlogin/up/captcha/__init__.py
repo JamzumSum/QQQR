@@ -238,7 +238,8 @@ class Captcha:
         d = json_loads(d.strip('\n'))
         return d['ans'], d['duration']
 
-    def imitateDrag(self, x: int):
+    @staticmethod
+    def imitateDrag(x: int):
         assert x < 300
         # 244, 1247
         t = randint(1200, 1300)

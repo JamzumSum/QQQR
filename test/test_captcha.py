@@ -84,8 +84,19 @@ class TestVM(TestCase):
         print(d)
 
     def testCollectData(self):
+        self.v.setData({'clientType': 2})
+        self.v.setData({'coordinate': [10, 24, 0.4103]})
+        self.v.setData({
+            'trycnt': 1,
+            'refreshcnt': 0,
+            'slideValue': Captcha.imitateDrag(230),
+            'dragobj': 1
+        })
+        self.v.setData({'ft': 'qf_7P_n_H'})
         self.assertTrue(d := self.v.getData())
+        print()
         print(d)
+        print(len(d))
 
     def testGetCookie(self):
         self.assertTrue(d := self.v.getCookie())

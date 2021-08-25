@@ -3,24 +3,25 @@ from functools import partial
 
 
 class ExecJS:
-    def __init__(self, node: str = 'node', *, js=None, path=None):
-        assert bool(js) ^ bool(path)
-
-        self.node = node
-        if path:
-            with open(path, encoding='utf8') as f:
-                js = f.read()
+    def __init__(self, node: str = 'node', *, js=None):
         self.js = js
-
         self.que = []
+
+        self.node = node if isinstance(node, (list, tuple)) else node.split()
+        assert self.version() is not None, f"`{self.node[0]}` is not installed."
 
     @staticmethod
     def callstr(func, *args) -> str:
         quoted = (
-            tostr[ty]() if (ty := type(i)) in (tostr := {
-                str: lambda: f'"{i}"',
-                bool: lambda: {True: 'true', False: 'false'}[i]
-            }) else str(i) for i in args
+            tostr[ty]() if (ty := type(i)) in (
+                tostr := {
+                    str: lambda: f'"{i}"',
+                    bool: lambda: {
+                        True: 'true',
+                        False: 'false'
+                    }[i]
+                }
+            ) else str(i) for i in args
         )
         return f'{func}({",".join(quoted)})'
 
@@ -29,7 +30,7 @@ class ExecJS:
 
     def _exec(self, js):
         p = subprocess.Popen(
-            *self.node.split(),
+            self.node,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
@@ -55,3 +56,17 @@ class ExecJS:
     def bind(self, func: str, new=True):
         n = ExecJS(self.node, js=self.js) if new else self
         return partial(n.__call__, func)
+
+    def version(self):
+        try:
+            p = subprocess.Popen(
+                self.node + ['-v'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            return
+        stdout, stderr = p.communicate()
+        if stderr:
+            raise RuntimeError(stderr.decode())
+        return stdout.decode()

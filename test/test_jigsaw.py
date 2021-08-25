@@ -7,7 +7,7 @@ import cv2 as cv
 
 class TestJigsaw(TestCase):
     def setUp(self) -> None:
-        self.j = Jigsaw.load('data/6.yml')
+        self.j = Jigsaw.load('data/7.yml')
 
     def testLoad(self):
         cv.imshow('origin', self.j.ans)
