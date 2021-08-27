@@ -11,15 +11,9 @@ from tencentlogin.qr import QRLogin
 from tencentlogin.constants import QzoneAppid, QzoneProxy
 
 sim = QRLogin(QzoneAppid, QzoneProxy)
-sched = sim.loop()(
-    refresh_callback=lambda png: show_user_qr(png),
-    return_callback=lambda cookie: return_cookie(cookie),
-)
-try:
-    sched.start()
-except TimeoutError:
-    # do something when refresh times exceeded
-    pass
+png = sim.request().show()
+with open('tmp/qr.png', 'wb') as f:
+    f.write(png)
 ~~~
 
 ### Poll Status of the latest QR
@@ -56,15 +50,27 @@ if r[0] == 0:
 ### Loop: Simpler API
 
 ~~~ python
+from tencentlogin.qr import QRLogin
+from tencentlogin.constants import QzoneAppid, QzoneProxy
+
+sim = QRLogin(QzoneAppid, QzoneProxy)
+sched = sim.loop()(
+    refresh_callback=lambda png: show_user_qr(png),
+    return_callback=lambda cookie: return_cookie(cookie),
+)
 try:
-    for i in self.q.loop():
-        if isinstance(i, bytes):
-            with open('tmp/r.png', 'wb') as f:
-                f.write(i)
+    sched.start()
 except TimeoutError:
-    # Timeout logic
-else:
-    p_skey = i
+    # do something when refresh times exceeded
+    pass
+except KeyboardInterrupt:
+    # do something when interupted
+    pass
+~~~
+
+~~~ python
+# other thread (maybe manually called by user)
+sched.stop(exception=True)    # raise KeyboardInterrupt
 ~~~
 
 ## UP Login
@@ -87,7 +93,8 @@ p_skey = self.q.login(r)
 
 ## Dependencies
 
-- `requests`, `apscheduler`
+- requests
+- For async waiting for QR scanning, `apscheduler` is needed. 
 - For User-Password login, `nodejs` is needed. `node` will be called by default.
 - For passing tcaptcha, `opencv-python` is needed.
 
