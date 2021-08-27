@@ -11,9 +11,15 @@ from tencentlogin.qr import QRLogin
 from tencentlogin.constants import QzoneAppid, QzoneProxy
 
 sim = QRLogin(QzoneAppid, QzoneProxy)
-png = sim.request().show()
-with open('tmp/qr.png', 'wb') as f:
-    f.write(png)
+sched = sim.loop()(
+    refresh_callback=lambda png: show_user_qr(png),
+    return_callback=lambda cookie: return_cookie(cookie),
+)
+try:
+    sched.start()
+except TimeoutError:
+    # do something when refresh times exceeded
+    pass
 ~~~
 
 ### Poll Status of the latest QR
@@ -81,7 +87,7 @@ p_skey = self.q.login(r)
 
 ## Dependencies
 
-- `requests`
+- `requests`, `apscheduler`
 - For User-Password login, `nodejs` is needed. `node` will be called by default.
 - For passing tcaptcha, `opencv-python` is needed.
 

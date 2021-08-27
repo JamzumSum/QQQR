@@ -31,13 +31,13 @@ class TestQR(TestCase):
         self.assertTrue(k)
 
     def testLoop(self):
-        try:
-            for i in self.q.loop():
-                if isinstance(i, bytes):
-                    with open('tmp/r.png', 'wb') as f:
-                        f.write(i)
-        except TimeoutError:
-            pass
-        else:
-            print(i)
-            self.assertIsInstance(i, str)
+        with open('tmp/r.png', 'wb') as f:
+            sched = self.q.loop()(
+                refresh_callback=lambda i: f.write(i),
+                return_callback=lambda i: self.assertIsInstance(i, str) or print(i),
+            )
+            try:
+                sched.start()
+            except TimeoutError:
+                # do something
+                pass
