@@ -2,7 +2,6 @@ import os
 
 import cv2 as cv
 import numpy as np
-import yaml
 
 debug = False
 
@@ -70,6 +69,7 @@ class Jigsaw:
 
     @staticmethod
     def save(ans, puzzle, piece, top):
+        import yaml
         os.makedirs('data', exist_ok=True)
         ex = len([i for i in os.listdir('data') if i.endswith('.yml')])
         with open(f"data/{ex}.yml", 'w') as f:
@@ -82,6 +82,7 @@ class Jigsaw:
 
     @classmethod
     def load(cls, filename):
+        import yaml
         with open(filename) as f:
             return cls(**yaml.safe_load(f))
 

@@ -16,6 +16,7 @@ setup(
     extras_require={
         'captcha': ['opencv-python'],  # Formal release will require opencv in all time.
     },
+    tests_require=['yaml'],
     packages=find_packages(where='src'),
     package_dir={"": 'src'},
     package_data={'tencentlogin.up.captcha': ['*.js']},
