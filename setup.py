@@ -8,6 +8,7 @@ setup(
     version='2.3.0b3',
     description='A simulation of tencent login protocol',
     author='JamzumSum',
+    author_email='zzzzss990315@gmail.com',
     url='https://github.com/JamzumSum/QQQR',
     license="AGPL-3.0",
     python_requires=">=3.8",  # for f-string and := op
@@ -17,4 +18,5 @@ setup(
     },
     packages=find_packages(where='src'),
     package_dir={"": 'src'},
+    include_package_data=True,
 )

@@ -1,25 +1,35 @@
-from tencentlogin.up import UPLogin, User
-from tencentlogin.constants import QzoneAppid, QzoneProxy
+from os import environ as env
 from unittest import TestCase
+from tencentlogin import TencentLoginError
+
+from tencentlogin.constants import QzoneAppid, QzoneProxy, StatusCode
+from tencentlogin.up import UPLogin, User
+
+login = UPLogin(
+    QzoneAppid, QzoneProxy, User(
+        env.get('TEST_UIN'),
+        env.get('TEST_PASSWORD'),
+    )
+)
 
 
 class TestRequest(TestCase):
-    def setUp(self) -> None:
-        import yaml
-        with open('config/user.yml') as f:
-            self.q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
-
     def testEncodePwd(self):
-        r = self.q.check()
-        if r[0] == 0:
-            p = self.q.encodePwd(r)
+        r = login.request().check()
+        if r.code == 1:
+            r = login.passVC(r)
+        if r.code != 1:
+            self.assertTrue(r.verifycode)
+            self.assertTrue(r.salt)
+            p = login.encodePwd(r)
             self.assertTrue(p)
-            print(p)
-        else:
-            print(r)
 
     def testLogin(self):
-        r = self.q.request().check()
-        k = self.q.login(r)
-        self.assertTrue(k)
-        print(k)
+        r = login.check()
+        try:
+            self.assertTrue(login.login(r))
+        except TencentLoginError as e:
+            if e.code == StatusCode.RiskyNetwork:
+                self.skipTest(str(e))
+            else:
+                raise e

@@ -8,12 +8,11 @@ __pycache__
 /data
 
 # build
-/build
 /dist
-*.egg-info
 
 # private data
 /config/user.yml
+.env
 
 # tools and scripts
 /script

@@ -21,6 +21,24 @@ class User:
     pwd: str
 
 
+@dataclass
+class CheckResult:
+    code: int
+    verifycode: str
+    salt: str
+    verifysession: str
+    isRandSalt: int
+    ptdrvs: str
+    session: str
+
+    def __post_init__(self):
+        self.code = int(self.code)
+        self.isRandSalt = int(self.isRandSalt)
+        salt = self.salt.split('\\x')[1:]
+        salt = [chr(int(i, 16)) for i in salt]
+        self.salt = ''.join(salt)
+
+
 class UPLogin(LoginBase):
     node = 'node'
     _captcha = None
@@ -29,9 +47,11 @@ class UPLogin(LoginBase):
         self, app: APPID, proxy: Proxy, user: User, info: PT_QR_APP = None
     ) -> None:
         super().__init__(app, proxy, info=info)
+        assert user.uin
+        assert user.pwd
         self.user = user
 
-    def encodePwd(self, r) -> str:
+    def encodePwd(self, r: CheckResult) -> str:
         assert self.user.pwd, 'password should not be empty'
 
         if not hasattr(self, 'getEncryption'):
@@ -46,10 +66,8 @@ class UPLogin(LoginBase):
 
             js = ExecJS(self.node, js=js)
             self.getEncryption = js.bind('getEncryption')
-        salt = r[2].split('\\x')[1:]
-        salt = [chr(int(i, 16)) for i in salt]
-        salt = ''.join(salt)
-        return self.getEncryption(self.user.pwd, salt, r[1]).strip()
+
+        return self.getEncryption(self.user.pwd, r.salt, r.verifycode).strip()
 
     def check(self):
         """[summary]
@@ -59,7 +77,7 @@ class UPLogin(LoginBase):
             HTTPError: [description]
 
         Returns:
-            list: (check_return_code, verifycode, salt, pt_verifysession_v1, isRandSalt, ptdrvs, session_id)
+            dict: 
                 code = 0/2/3 hideVC; 
                 code = 1 showVC
         """
@@ -81,7 +99,7 @@ class UPLogin(LoginBase):
 
         r = re.findall(r"'(.*?)'[,\)]", r.text)
         r[0] = int(r[0])
-        return r
+        return CheckResult(*r)
         # (
         #     '0', '!JRV', '\x00\x00\x00\x00\x1b\x5b\x62\xa1',
         #     '9a0c40e8365dbabd1e864c9baf273ba5d3b53292224e02688f3f23f37f043d0c07d968d829a4b8b10f72061a7d2b05e0195a9814345353f3',
@@ -89,14 +107,16 @@ class UPLogin(LoginBase):
         #     '331616062933615434'
         # )
 
-    def login(self, r, all_cookie=False, pastcode: int = 0) -> Union[str, dict]:
-        assert len(r) == 7
+    def login(self,
+              r: CheckResult,
+              all_cookie=False,
+              pastcode: int = 0) -> Union[str, dict]:
 
-        if r[0] == StatusCode.Authenticated: pass
-        elif r[0] == StatusCode.NeedCaptcha:
+        if r.code == StatusCode.Authenticated: pass
+        elif r.code == StatusCode.NeedCaptcha:
             if pastcode == 0:
                 self.login(self.passVC(r), all_cookie, StatusCode.NeedCaptcha)
-        elif r[0] == StatusCode.NeedVerify:
+        elif r.code == StatusCode.NeedVerify:
             if pastcode != StatusCode.NeedVerify:
                 raise NotImplementedError('wait for next version :D')
         else:
@@ -105,10 +125,10 @@ class UPLogin(LoginBase):
         data = {
             'u': self.user.uin,
             'p': self.encodePwd(r),
-            'verifycode': r[1],
+            'verifycode': r.verifycode,
             'pt_vcode_v1': 1 if pastcode == StatusCode.NeedCaptcha else 0,
-            'pt_verifysession_v1': r[3],
-            'pt_randsalt': r[4],  # 2 or r[4]
+            'pt_verifysession_v1': r.verifysession,
+            'pt_randsalt': r.isRandSalt,
             'u1': self.proxy.s_url,
             'ptredirect': 0,
             'h': 1,
@@ -123,8 +143,8 @@ class UPLogin(LoginBase):
             'pt_uistyle': 40,
             'aid': self.app.appid,
             'daid': self.app.daid,
-            'ptdrvs': r[5],
-            'sid': r[6],
+            'ptdrvs': r.ptdrvs,
+            'sid': r.session,
         }
         self.header['Referer'] = 'https://xui.ptlogin2.qq.com/'
         response = self.session.get(LOGIN_URL, params=data, headers=self.header)
@@ -149,11 +169,11 @@ class UPLogin(LoginBase):
             self._captcha = Captcha(self.session, self.app.appid, sid, self.header)
         return self._captcha
 
-    def passVC(self, r: list):
-        c = self.captcha(r[6])
+    def passVC(self, r: CheckResult):
+        c = self.captcha(r.session)
         c.prehandle(self.xlogin_url)
         d = c.verify()
-        r[0] = 0
-        r[1] = d['randstr']
-        r[3] = d['ticket']
+        r.code = d['errorCode']
+        r.verifycode = d['randstr']
+        r.verifysession = d['ticket']
         return r
