@@ -1,5 +1,0 @@
-requests
-apscheduler
-
-[captcha]
-opencv-python
