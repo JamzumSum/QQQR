@@ -1,7 +1,6 @@
 import re
 from random import choice, random
 from time import time_ns
-from typing import Union
 
 from requests.exceptions import HTTPError
 
@@ -100,27 +99,20 @@ class UPLogin(LoginBase):
         r = re.findall(r"'(.*?)'[,\)]", r.text)
         r[0] = int(r[0])
         return CheckResult(*r)
-        # (
-        #     '0', '!JRV', '\x00\x00\x00\x00\x1b\x5b\x62\xa1',
-        #     '9a0c40e8365dbabd1e864c9baf273ba5d3b53292224e02688f3f23f37f043d0c07d968d829a4b8b10f72061a7d2b05e0195a9814345353f3',
-        #     '2', 'iycxH51-6f9oQSwVtu91*UgHRvqU9RDD7JTTLyRvj9FmMB7fcQrgAbWrKlYs3sx1',
-        #     '331616062933615434'
-        # )
 
-    def login(self,
-              r: CheckResult,
-              all_cookie=False,
-              pastcode: int = 0) -> Union[str, dict]:
+    def login(self, r: CheckResult, all_cookie=False, pastcode: int = 0):
 
-        if r.code == StatusCode.Authenticated: pass
-        elif r.code == StatusCode.NeedCaptcha:
-            if pastcode == 0:
-                self.login(self.passVC(r), all_cookie, StatusCode.NeedCaptcha)
-        elif r.code == StatusCode.NeedVerify:
-            if pastcode != StatusCode.NeedVerify:
-                raise NotImplementedError('wait for next version :D')
+        if r.code == StatusCode.Authenticated:
+            # OK
+            pass
+        elif r.code == StatusCode.NeedCaptcha and pastcode == 0:
+            # 0 -> 1: OK; !0 -> 1: Error
+            self.login(self.passVC(r), all_cookie, StatusCode.NeedCaptcha)
+        elif r.code == StatusCode.NeedVerify and pastcode != StatusCode.NeedVerify:
+            # !10009 -> 10009: OK; 10009 -> 10009: Error
+            raise NotImplementedError('wait for next version :D')
         else:
-            raise TencentLoginError(r.code, '')
+            raise TencentLoginError(r.code, str(r))
 
         data = {
             'u': self.user.uin,
@@ -156,12 +148,12 @@ class UPLogin(LoginBase):
         if r[0] != StatusCode.Authenticated:
             raise TencentLoginError(r[0], r[4])
 
-        login_url = r[2]
-        cookie = self.session.get(login_url, allow_redirects=False, headers=self.header).cookies
+        response = self.session.get(r[2], allow_redirects=False, headers=self.header)
         if all_cookie:
-            return cookie.get_dict()
+            r: dict = response.cookies.get_dict()
         else:
-            return cookie['p_skey']
+            r: str = response.cookies['p_skey']
+        return r
 
     def captcha(self, sid: str):
         if not self._captcha:

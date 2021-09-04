@@ -18,5 +18,6 @@ setup(
     },
     packages=find_packages(where='src'),
     package_dir={"": 'src'},
+    package_data={'tencentlogin.up.captcha': ['*.js']},
     include_package_data=True,
 )
