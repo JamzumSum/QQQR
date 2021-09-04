@@ -165,7 +165,7 @@ class UPLogin(LoginBase):
         c = self.captcha(r.session)
         c.prehandle(self.xlogin_url)
         d = c.verify()
-        r.code = d['errorCode']
+        r.code = int(d['errorCode'])
         r.verifycode = d['randstr']
         r.verifysession = d['ticket']
         return r
