@@ -120,7 +120,7 @@ class UPLogin(LoginBase):
             if pastcode != StatusCode.NeedVerify:
                 raise NotImplementedError('wait for next version :D')
         else:
-            raise TencentLoginError(r[0], r[4])
+            raise TencentLoginError(r.code, '')
 
         data = {
             'u': self.user.uin,
@@ -157,11 +157,11 @@ class UPLogin(LoginBase):
             raise TencentLoginError(r[0], r[4])
 
         login_url = r[2]
-        r = self.session.get(login_url, allow_redirects=False, headers=self.header)
+        cookie = self.session.get(login_url, allow_redirects=False, headers=self.header).cookies
         if all_cookie:
-            return r.cookies.get_dict()
+            return cookie.get_dict()
         else:
-            return r.cookies['p_skey']
+            return cookie['p_skey']
 
     def captcha(self, sid: str):
         if not self._captcha:
