@@ -16,7 +16,3 @@ src/tencentlogin/up/__init__.py
 src/tencentlogin/up/captcha/__init__.py
 src/tencentlogin/up/captcha/jigsaw.py
 src/tencentlogin/up/captcha/window.js
-test/test_captcha.py
-test/test_jigsaw.py
-test/test_qr.py
-test/test_up.py
