@@ -2,6 +2,17 @@
 
 A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol
 
+<div style="text-align:left">
+
+<img src="https://img.shields.io/badge/python-3.8%2F3.9-blue">
+
+<a href="https://github.com/JamzumSum/QQQR/actions/workflows/python-app.yml">
+<img src="https://img.shields.io/github/workflow/status/JamzumSum/QQQR/Python%20application?logo=github">
+</img>
+</a>
+
+</div>
+
 ## QR Login
 
 ### Get a QRcode
