@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: [3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -25,12 +25,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -U pytest
           pip install -e .[captcha]
 
-      - name: Test with unittest
+      - name: Test with pytest
         env:
           TEST_UIN: ${{ secrets.TEST_UIN }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
           export PYTHONPATH=$(pwd)/src
-          python -m unittest discover -v -s test -p "test_up.py"
+          python -m pytest test

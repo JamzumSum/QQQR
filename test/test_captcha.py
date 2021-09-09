@@ -1,103 +1,80 @@
 from math import floor
-from unittest import TestCase
+from os import environ as env
 
+import pytest
 from tencentlogin.constants import QzoneAppid, QzoneProxy
 from tencentlogin.up import UPLogin, User
 from tencentlogin.up.captcha import Captcha, ScriptHelper
 from tencentlogin.up.captcha.jigsaw import Jigsaw
 
-
-class TestCaptcha(TestCase):
-    def setUp(self) -> None:
-        import yaml
-        with open('config/user.yml') as f:
-            self.q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
-
-    def testLogin(self):
-        r = self.q.check()
-        if r[0] == 1:
-            html = self.q.passVC(r)
-            self.assertTrue(html)
-            with open('tmp/iframe.html', 'w', encoding='utf8') as f:
-                f.write(html)
+captcha = xlogin_url = iframe = shelper = None
 
 
-class TestScript(TestCase):
-    def setUp(self) -> None:
-        import yaml
-        with open('config/user.yml') as f:
-            q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
-            r = q.check()
-            assert r[0] == 1
-            self.c = q.captcha(r[6])
-            self.c.prehandle(q.xlogin_url)
+def setup_module() -> None:
+    global captcha, xlogin_url, shelper
+    login = UPLogin(QzoneAppid, QzoneProxy, User(env['TEST_UIN'], env['TEST_PASSWORD']))
+    captcha = login.captcha(login.check().session)
+    xlogin_url = login.xlogin_url
+    captcha.prehandle(xlogin_url)
+    shelper = ScriptHelper(captcha.appid, captcha.sid, 2)
 
-    def testConf(self):
-        html = self.c.iframe()
-        s = ScriptHelper(self.c.appid, self.c.sid, 2)
-        s.parseCaptchaConf(html)
-        self.assertTrue(s.conf)
-        self.assertTrue(s.conf['nonce'])
-        self.assertTrue(s.conf['powCfg'])
 
-    def testMatchMd5(self):
-        html = self.c.iframe()
-        html = self.c.iframe()
-        s = ScriptHelper(self.c.appid, self.c.sid, 2)
-        s.parseCaptchaConf(html)
-        ans, duration = self.c.matchMd5(html, s.conf['powCfg'])
-        self.assertLessEqual(ans, 3e5)
-        self.assertGreater(duration, 0)
+# @pytest.mark.skipif(not captcha, reason='need login')
+class TestCaptcha:
+    def test_iframe(self):
+        html = captcha.iframe()
+        assert html
+        global iframe
+        iframe = html
 
-    def testCdn(self):
-        html = self.c.iframe()
-        html = self.c.iframe()
-        s = ScriptHelper(self.c.appid, self.c.sid, 2)
-        s.parseCaptchaConf(html)
-        rio = lambda url: self.c.session.get(
-            url, headers=self.c.header, allow_redirects=False
+    def test_windowconf(self):
+        shelper.parseCaptchaConf(iframe)
+        assert shelper.conf
+        assert shelper.conf['nonce']
+        assert shelper.conf['powCfg']
+
+    def test_match_md5(self):
+        ans, duration = captcha.matchMd5(iframe, shelper.conf['powCfg'])
+        assert ans <= 3e5
+        assert duration > 0
+
+    def test_puzzle(self):
+        rio = lambda url: captcha.session.get(
+            url, headers=captcha.header, allow_redirects=False
         ).content
-        a1 = (rio(s.cdn(0)), rio(s.cdn(1)), rio(s.cdn(2)), floor(int(s.conf['spt'])))
-        (j := Jigsaw(*a1)).save(*a1)
-        self.assertGreater(j.width, 0)
+        j = Jigsaw(
+            *[rio(shelper.cdn(i)) for i in range(3)],
+            top=floor(int(shelper.conf['spt']))
+        )
+        assert j.width > 0
 
-    def testVerify(self):
-        r = self.c.verify()
-        self.assertTrue(r['randstr'])
+    def test_verify(self):
+        r = captcha.verify()
+        assert r['randstr']
 
 
-class TestVM(TestCase):
-    def setUp(self) -> None:
-        import yaml
-        with open('config/user.yml') as f:
-            q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
-            r = q.check()
-            assert r[0] == 1
-            c = q.captcha(r[6])
-            c.prehandle(q.xlogin_url)
-            c.getTdx(c.iframe())
-            self.v = c.vm
+# @pytest.mark.skipif(not iframe or not prehandled, reason='pred test failed')
+class TestVM:
+    @classmethod
+    def setup_class(cls):
+        cls.vm = captcha.getTdx(iframe)
 
     def testGetInfo(self):
-        self.assertTrue(d := self.v.getInfo())
-        self.assertTrue(d['info'])
-        print(d)
+        assert (d := self.vm.getInfo())
+        assert d['info']
 
     def testCollectData(self):
-        self.v.setData({'clientType': 2})
-        self.v.setData({'coordinate': [10, 24, 0.4103]})
-        self.v.setData({
+        self.vm.setData({'clientType': 2})
+        self.vm.setData({'coordinate': [10, 24, 0.4103]})
+        self.vm.setData({
             'trycnt': 1,
             'refreshcnt': 0,
             'slideValue': Captcha.imitateDrag(230),
             'dragobj': 1
         })
-        self.v.setData({'ft': 'qf_7P_n_H'})
-        self.assertTrue(d := self.v.getData())
-        print()
-        print(d)
-        print(len(d))
+        self.vm.setData({'ft': 'qf_7P_n_H'})
+        assert (d := self.vm.getData())
+        assert len(d) > 200
 
     def testGetCookie(self):
-        self.assertTrue(d := self.v.getCookie())
-        print(d)
+        assert self.vm.getCookie()

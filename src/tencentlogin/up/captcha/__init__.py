@@ -55,7 +55,7 @@ class ScriptHelper:
 
     @staticmethod
     def tdx_js_url(iframe):
-        return "https://t.captcha.qq.com" + re.search(r'src="(/tdx.js.*?)"',
+        return "https://t.captcha.qq.com" + re.search(r'src="(/td[xc].js.*?)"',
                                                       iframe).group(1)
 
 
@@ -226,6 +226,7 @@ class Captcha:
         self.vm = VM(self.session.get(js_url, headers=self.header).text, header=header)
         c = re.search(r'TDC_itoken=([\w%]+);', self.vm.getCookie()).group(1)
         self.session.cookies.update({'TDC_itoken': c})
+        return self.vm
 
     def matchMd5(self, iframe: str, powCfg: dict):
         if not hasattr(self, '_matchMd5'):

@@ -87,8 +87,8 @@ from tencentlogin.constants import QzoneAppid, QzoneProxy
 with open('me.yml') as f:
     q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
 
-r = self.q.check()
-p_skey = self.q.login(r)
+r = q.check()
+p_skey = q.login(r)
 ~~~
 
 ## Dependencies

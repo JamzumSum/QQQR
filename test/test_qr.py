@@ -1,25 +1,33 @@
+import sys
+
+import pytest
+from tencentlogin.constants import QzoneAppid, QzoneProxy, StatusCode
 from tencentlogin.qr import QRLogin
-from tencentlogin.constants import QzoneAppid, QzoneProxy
-from unittest import TestCase
+
+needuser = pytest.mark.skipif(sys.platform != 'win32', reason='need user interaction')
 
 
-def __init__():
+def setup_module():
     global login
     login = QRLogin(QzoneAppid, QzoneProxy)
+    login.request()
 
 
-class TestQR(TestCase):
-    def test0000(self):
-        __init__()
+class TestProcedure:
+    def test_new(self):
+        assert login.show()
 
-    def test0_Norm(self):
-        login.request()
+    def test_poll(self):
+        assert (r := login.pollStat())
+        assert r[0] == StatusCode.Waiting
 
-    def test1_Refresh(self):
-        b = login.show()
-        self.assertTrue(b)
 
-    def test3_Loop(self):
+@needuser
+class TestLoop:
+    def assertIsInstance(self, o, cls):
+        assert isinstance(o, cls)
+
+    def test_Loop(self):
         with open('tmp/r.png', 'wb') as f:
             sched = login.loop()(
                 refresh_callback=lambda i: print('png write: tmp/r.png') or f.write(i),
@@ -29,4 +37,4 @@ class TestQR(TestCase):
                 sched.start()
             except TimeoutError:
                 # do something
-                self.skipTest('User did not interact')
+                pytest.skip('User did not interact')

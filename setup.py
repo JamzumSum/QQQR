@@ -5,7 +5,7 @@ LOWERCASE = NAME.lower()
 
 setup(
     name=NAME,
-    version='2.3.0b4',
+    version='2.3.0b5',
     description='A simulation of tencent login protocol',
     author='JamzumSum',
     author_email='zzzzss990315@gmail.com',
