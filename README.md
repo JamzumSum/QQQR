@@ -6,6 +6,10 @@ A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol
 
 <img src="https://img.shields.io/badge/python-3.8%2F3.9-blue">
 
+<a href="https://github.com/JamzumSum/QQQR/actions/workflows/interface.yml">
+<img src="https://github.com/JamzumSum/QQQR/actions/workflows/interface.yml/badge.svg">
+</a>
+
 <a href="https://github.com/JamzumSum/QQQR/actions/workflows/python-app.yml">
 <img src="https://img.shields.io/github/workflow/status/JamzumSum/QQQR/Python%20application?logo=github">
 </img>
