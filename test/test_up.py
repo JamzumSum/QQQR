@@ -34,7 +34,7 @@ class TestRequest:
         try:
             assert login.login(r)
         except TencentLoginError as e:
-            if e.code == StatusCode.RiskyNetwork:
+            if e.code in [StatusCode.RiskyNetwork, StatusCode.ForceQR]:
                 pytest.skip(str(e))
             else:
                 raise e
