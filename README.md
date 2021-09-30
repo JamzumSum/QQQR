@@ -1,6 +1,6 @@
 # TenSent Login Simulation
 
-A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol
+A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol. This repo is a component of [Qzone2TG][qzone2tg].
 
 <div style="text-align:left">
 
@@ -10,16 +10,17 @@ A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol
 <img src="https://github.com/JamzumSum/QQQR/actions/workflows/interface.yml/badge.svg">
 </a>
 
-<a href="https://github.com/JamzumSum/QQQR/actions/workflows/python-app.yml">
-<img src="https://img.shields.io/github/workflow/status/JamzumSum/QQQR/Python%20application?logo=github">
-</img>
+<a href="https://github.com/JamzumSum/QQQR/actions/workflows/test.yml">
+<img src="https://github.com/JamzumSum/QQQR/actions/workflows/test.yml/badge.svg">
 </a>
 
 </div>
 
-## QR Login
+## API and Examples
 
-### Get a QRcode
+### QR Login
+
+#### Get a QRcode
 
 ~~~ python
 from tencentlogin.qr import QRLogin
@@ -31,7 +32,7 @@ with open('tmp/qr.png', 'wb') as f:
     f.write(png)
 ~~~
 
-### Poll Status of the latest QR
+#### Poll Status of the latest QR
 
 ~~~ python
 from tencentlogin.constants import StatusCode
@@ -54,7 +55,7 @@ else:
     raise TimeoutError
 ~~~
 
-### Login
+#### Login
 
 ~~~ python
 r = sim.pollStat()
@@ -62,7 +63,7 @@ if r[0] == 0:
     p_skey = sim.login()
 ~~~
 
-### Loop: Simpler API
+#### Loop: Simpler API
 
 ~~~ python
 from tencentlogin.qr import QRLogin
@@ -88,11 +89,11 @@ except KeyboardInterrupt:
 sched.stop(exception=True)    # raise KeyboardInterrupt
 ~~~
 
-## UP Login
+### UP Login
 
 > NOTE: tcaptcha support is an experimental feature!
 
-### Login Directly
+#### Login Directly
 
 ~~~ python
 import yaml
@@ -117,3 +118,6 @@ p_skey = q.login(r)
 
 - [AGPL-3.0](https://github.com/JamzumSum/QQQR/blob/master/LICENCE)
 - All commercial uses are __NOT__ supported
+
+
+[qzone2tg]: https://github.com/JamzumSum/Qzone2TG "Forward Qzone Feeds to Telegram"

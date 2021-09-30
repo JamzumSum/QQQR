@@ -1,6 +1,8 @@
 # vs code config and cache
 __pycache__
 .vscode
+.pylintrc
+yapf_style.cfg
 
 # temporary files
 /tmp
