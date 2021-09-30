@@ -1,13 +1,15 @@
 import re
+from dataclasses import dataclass
 from random import choice, random
 from time import time_ns
 
+from jssupport.execjs import ExecJS
 from requests.exceptions import HTTPError
-
 from tencentlogin.constants import StatusCode
 
-from .. import *
-from jssupport.execjs import ExecJS
+from ..base import LoginBase
+from ..exception import TencentLoginError
+from ..type import APPID, PT_QR_APP, Proxy
 
 CHECK_URL = "https://ssl.ptlogin2.qq.com/check"
 LOGIN_URL = 'https://ssl.ptlogin2.qq.com/login'

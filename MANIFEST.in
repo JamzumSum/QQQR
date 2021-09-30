@@ -1,0 +1,2 @@
+include src/tencentlogin/up/captcha/*.js
+include src/tencentlogin/VERSION

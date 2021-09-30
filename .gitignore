@@ -9,6 +9,7 @@ __pycache__
 
 # build
 /dist
+/build
 *.egg-info
 
 # private data

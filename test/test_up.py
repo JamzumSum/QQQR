@@ -1,8 +1,8 @@
 from os import environ as env
 
 import pytest
-from tencentlogin import TencentLoginError
 from tencentlogin.constants import QzoneAppid, QzoneProxy, StatusCode
+from tencentlogin.exception import TencentLoginError
 from tencentlogin.up import UPLogin, User
 
 login = None

@@ -8,8 +8,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from requests.exceptions import HTTPError
 
-from .. import *
+from ..base import LoginBase
 from ..constants import StatusCode
+from ..encrypt import hash33
 
 SHOW_QR = 'https://ssl.ptlogin2.qq.com/ptqrshow'
 XLOGIN_URL = 'https://xui.ptlogin2.qq.com/cgi-bin/xlogin'
@@ -38,13 +39,6 @@ class QRLogin(LoginBase):
         self.qrsig = r.cookies['qrsig']
         return r.content
 
-    def encodedSig(self):
-        # str.hash33
-        phash = 0
-        for c in self.qrsig:
-            phash += (phash << 5) + ord(c)
-        return 0x7fffffff & phash
-
     def pollStat(self):
         """poll status of the qr
 
@@ -56,7 +50,7 @@ class QRLogin(LoginBase):
         """
         data = {
             'u1': self.proxy.s_url,
-            'ptqrtoken': self.encodedSig(),
+            'ptqrtoken': hash33(self.qrsig),
             'ptredirect': 0,
             'h': 1,
             't': 1,
