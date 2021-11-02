@@ -49,7 +49,6 @@ def test_login():
 
 ## Dependency Notice
 
-- requests
 - Uin-Password login needs to execute JavaScript. `NodeJS` is used;
 - `opencv-python` is needed for captcha image processing;
 - `PyYaml` will be needed for cv debugging and development.

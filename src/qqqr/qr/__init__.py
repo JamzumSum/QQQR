@@ -9,6 +9,7 @@ from requests.exceptions import HTTPError
 from ..base import LoginBase
 from ..constants import StatusCode
 from ..encrypt import hash33
+from ..exception import UserBreak
 
 SHOW_QR = 'https://ssl.ptlogin2.qq.com/ptqrshow'
 XLOGIN_URL = 'https://xui.ptlogin2.qq.com/cgi-bin/xlogin'
@@ -96,8 +97,9 @@ class QRLogin(LoginBase):
                 for i in range(refresh_time):
                     send = expire_callback if i else send_callback
                     send(self.show())
-                    while not q._INT:
+                    while True:
                         sleep(polling_freq)
+                        if q._INT: raise UserBreak
                         stat = self.pollStat()
                         if stat[0] == StatusCode.Expired: break
                         if stat[0] == StatusCode.Authenticated:

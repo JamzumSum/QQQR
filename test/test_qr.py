@@ -38,6 +38,7 @@ class TestLoop:
         cookie = thread.result()
         assert cookie['p_skey']
 
+    @pytest.mark.xfail
     def test_stop(self, login):
         thread = login.loop(lambda _: 0)
         thread.stop()
