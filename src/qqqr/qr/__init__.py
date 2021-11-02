@@ -89,6 +89,7 @@ class QRLogin(LoginBase):
     ):
         class Q(Thread):
             _INT = False
+            _exc = None
 
             def __init__(self):
                 super().__init__(name='QR')
@@ -99,16 +100,20 @@ class QRLogin(LoginBase):
                     send(self.show())
                     while True:
                         sleep(polling_freq)
-                        if q._INT: raise UserBreak
+                        if q._INT: 
+                            q._exc = UserBreak
+                            return
+                            
                         stat = self.pollStat()
                         if stat[0] == StatusCode.Expired: break
                         if stat[0] == StatusCode.Authenticated:
                             q._result = self.login()
                             return
-                raise TimeoutError
+                q._exc = TimeoutError
 
-            def result(self, timeout: float = None) -> None:
+            def result(self, timeout: float = None):
                 super().join(timeout=timeout)
+                if self._exc: raise self._exc
                 return self._result
 
             def stop(self):

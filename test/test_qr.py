@@ -3,6 +3,7 @@ from os import environ as env
 import pytest
 from qqqr.constants import QzoneAppid, QzoneProxy, StatusCode
 from qqqr.qr import QRLogin
+from qqqr.exception import UserBreak
 
 need_interact = pytest.mark.skipif(
     not env.get('QR_OK', 0), reason='need user interaction'
@@ -38,7 +39,8 @@ class TestLoop:
         cookie = thread.result()
         assert cookie['p_skey']
 
-    @pytest.mark.xfail
     def test_stop(self, login):
         thread = login.loop(lambda _: 0)
         thread.stop()
+        pytest.raises(UserBreak, thread.result)
+        
