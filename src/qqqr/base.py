@@ -1,14 +1,15 @@
+from abc import ABC, abstractmethod
+from ssl import create_default_context
 from urllib.parse import urlencode
 
 from requests import Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import HTTPError
-from requests.packages.urllib3.util.ssl_ import create_urllib3_context
 
 from .type import APPID, PT_QR_APP, Proxy
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36 Edg/93.0.961.52"
-CIPHERS = ":".join([
+CIPHERS = [
     "ECDHE+AESGCM",
     "ECDHE+CHACHA20",
     "DHE+AESGCM",
@@ -20,7 +21,7 @@ CIPHERS = ":".join([
     "!eNULL",
     "!MD5",
     "!DSS",
-])
+]
 XLOGIN_URL = 'https://xui.ptlogin2.qq.com/cgi-bin/xlogin'
 
 
@@ -29,21 +30,24 @@ class TLSAdapter(HTTPAdapter):
         """
         A TransportAdapter that re-enables 3DES support in Requests.
         """
-        self.CIPHERS = CIPHERS
+        self.CIPHERS = ':'.join(CIPHERS)
         super().__init__(*args, **kwargs)
 
+    def __context(self):
+        c = create_default_context()
+        c.set_ciphers(self.CIPHERS)
+        return c
+
     def init_poolmanager(self, *args, **kwargs):
-        context = create_urllib3_context(ciphers=self.CIPHERS)
-        kwargs['ssl_context'] = context
+        kwargs['ssl_context'] = self.__context()
         return super(TLSAdapter, self).init_poolmanager(*args, **kwargs)
 
     def proxy_manager_for(self, *args, **kwargs):
-        context = create_urllib3_context(ciphers=self.CIPHERS)
-        kwargs['ssl_context'] = context
+        kwargs['ssl_context'] = self.__context()
         return super(TLSAdapter, self).proxy_manager_for(*args, **kwargs)
 
 
-class LoginBase:
+class LoginBase(ABC):
     def __init__(self, app: APPID, proxy: Proxy, info: PT_QR_APP = None) -> None:
         self.session = Session()
         self.session.mount('https://', TLSAdapter())
@@ -80,6 +84,10 @@ class LoginBase:
         self.local_token = int(r.cookies['pt_local_token'])
         return self
 
-    def ja3Detect(self) -> dict:
-        # for debuging
-        return self.session.get('https://ja3er.com/json', headers=self.header).json()
+    @abstractmethod
+    def login(self, *args, **kwds) -> dict[str, str]:
+        return
+
+    # def ja3Detect(self) -> dict:
+    #     # for debuging
+    #     return self.session.get('https://ja3er.com/json', headers=self.header).json()

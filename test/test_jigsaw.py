@@ -1,13 +1,13 @@
 import os
-import sys
 from math import floor
+from os import environ as env
 
 import cv2 as cv
 import pytest
-from tencentlogin.up.captcha.jigsaw import Jigsaw, Piece
+from qqqr.up.captcha.jigsaw import Jigsaw, Piece
 
 desktoponly = pytest.mark.skipif(
-    sys.platform != 'win32', reason='cv.show not available'
+    not env.get('QR_OK', 0), reason='cv.show not available'
 )
 
 

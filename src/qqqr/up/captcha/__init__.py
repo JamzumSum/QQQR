@@ -9,8 +9,8 @@ from urllib.parse import unquote, urlencode
 from jssupport.execjs import ExecJS
 from jssupport.jsjson import json_loads
 from requests import Session
-from requests.exceptions import HTTPError
-from tencentlogin.up.captcha.jigsaw import Jigsaw
+
+from .jigsaw import Jigsaw
 
 PREHANDLE_URL = "https://t.captcha.qq.com/cap_union_prehandle"
 SHOW_NEW_URL = "https://t.captcha.qq.com/cap_union_new_show"
@@ -172,8 +172,7 @@ class Captcha:
         }
         self.createIframeStart = time_s()
         r = self.session.get(PREHANDLE_URL, params=data, headers=self.header)
-        if r.status_code != 200:
-            raise HTTPError(response=r)
+        r.raise_for_status()
 
         r = re.search(CALLBACK + r"\((\{.*\})\)", r.text).group(1)
         r = json.loads(r)

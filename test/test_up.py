@@ -1,26 +1,23 @@
+import asyncio
 from os import environ as env
 
 import pytest
-from tencentlogin.constants import QzoneAppid, QzoneProxy, StatusCode
-from tencentlogin.exception import TencentLoginError
-from tencentlogin.up import UPLogin, User
-
-login = None
+from qqqr.constants import QzoneAppid, QzoneProxy, StatusCode
+from qqqr.exception import TencentLoginError
+from qqqr.up import UPLogin, User
 
 
-def setup_module():
-    global login
+@pytest.fixture(scope='module')
+def login():
     login = UPLogin(
-        QzoneAppid, QzoneProxy, User(
-            env.get('TEST_UIN'),
-            env.get('TEST_PASSWORD'),
-        )
+        QzoneAppid, QzoneProxy, User(env.get('TEST_UIN'), env.get('TEST_PASSWORD'))
     )
     login.request()
+    yield login
 
 
 class TestRequest:
-    def testEncodePwd(self):
+    def testEncodePwd(self, login):
         r = login.check()
         if r.code == 1:
             r = login.passVC(r)
@@ -29,7 +26,7 @@ class TestRequest:
             assert r.salt
             assert login.encodePwd(r)
 
-    def testLogin(self):
+    def testLogin(self, login):
         r = login.check()
         try:
             assert login.login(r)

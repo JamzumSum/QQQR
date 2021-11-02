@@ -2,8 +2,6 @@ import re
 from random import random
 from typing import Union
 
-from requests.exceptions import ConnectionError, HTTPError
-
 from ..base import LoginBase
 from ..encrypt import hash33
 from ..type import APPID, PT_QR_APP, Proxy
@@ -62,7 +60,7 @@ class LCLogin(LoginBase):
         if response.status_code == 200:
             return self.session.cookies['clientkey']
 
-    def login(self, all_cookie=False) -> Union[str, dict]:
+    def login(self) -> dict[str, str]:
         data = {
             'clientuin': self.uin,
             'keyindex': 9,
@@ -79,9 +77,6 @@ class LCLogin(LoginBase):
         r = re.findall(r"'(.*?)'[,\)]", response.text)
 
         response = self.session.get(r[1], headers=self.header)
-        if response.status_code == 200: raise HTTPError(response=response)
+        response.raise_for_status()
 
-        if all_cookie:
-            return self.session.cookies.get_dict()
-        else:
-            return self.session.cookies['p_skey']
+        return self.session.cookies.get_dict()

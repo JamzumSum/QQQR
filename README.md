@@ -16,77 +16,19 @@ A simulation of T&thinsp;en&thinsp;c&thinsp;en&thinsp;t Login Protocol. This rep
 
 </div>
 
-## API and Examples
+## Examples
 
 ### QR Login
 
-#### Get a QRcode
-
 ~~~ python
-from tencentlogin.qr import QRLogin
-from tencentlogin.constants import QzoneAppid, QzoneProxy
+from qqqr.qr import QRLogin
+from qqqr.constants import QzoneAppid, QzoneProxy
 
-sim = QRLogin(QzoneAppid, QzoneProxy)
-png = sim.request().show()
-with open('tmp/qr.png', 'wb') as f:
-    f.write(png)
-~~~
-
-#### Poll Status of the latest QR
-
-~~~ python
-from tencentlogin.constants import StatusCode
-
-for _ in range(10):
-    r = sim.pollStat()
-    if r[0] == StatusCode.Expired: 
-        # expired
-        with open('tmp/qr.png', 'wb') as f: 
-            f.write(sim.show())
-    elif r[0] == StatusCode.Authenticated: 
-        # login success
-        break   
-    else: 
-        if r[0] != StatusCode.Waiting: 
-            print(r[4])  # show msg
-    sleep(3000)
-else:
-    # Timeout logic
-    raise TimeoutError
-~~~
-
-#### Login
-
-~~~ python
-r = sim.pollStat()
-if r[0] == 0:
-    p_skey = sim.login()
-~~~
-
-#### Loop: Simpler API
-
-~~~ python
-from tencentlogin.qr import QRLogin
-from tencentlogin.constants import QzoneAppid, QzoneProxy
-
-sim = QRLogin(QzoneAppid, QzoneProxy)
-sched = sim.loop()(
-    refresh_callback=lambda png: show_user_qr(png),
-    return_callback=lambda cookie: return_cookie(cookie),
-)
-try:
-    sched.start()
-except TimeoutError:
-    # do something when refresh times exceeded
-    pass
-except KeyboardInterrupt:
-    # do something when interupted
-    pass
-~~~
-
-~~~ python
-# other thread (maybe manually called by user)
-sched.stop(exception=True)    # raise KeyboardInterrupt
+def test_Loop(self):
+    login = QRLogin(QzoneAppid, QzoneProxy).request()
+    thread = login.loop(sendqr2user)    # register callback for qr bytes
+    cookie = thread.result()            # block current thread
+    assert cookie['p_skey']
 ~~~
 
 ### UP Login
@@ -96,28 +38,30 @@ sched.stop(exception=True)    # raise KeyboardInterrupt
 #### Login Directly
 
 ~~~ python
-import yaml
-from tencentlogin.up import UPLogin, User
-from tencentlogin.constants import QzoneAppid, QzoneProxy
+from qqqr.up import UPLogin, User
+from qqqr.constants import QzoneAppid, QzoneProxy
 
-with open('me.yml') as f:
-    q = UPLogin(QzoneAppid, QzoneProxy, User(**yaml.safe_load(f)))
-
-r = q.check()
-p_skey = q.login(r)
+def test_login():
+    login = UPLogin(QzoneAppid, QzoneProxy, User(uin, pwd)).request()
+    cookie = login.login(login.check())
+    assert cookie['p_skey']
 ~~~
 
-## Dependencies
+## Dependency Notice
 
 - requests
-- For async waiting for QR scanning, `apscheduler` is needed. 
-- For User-Password login, `nodejs` is needed. `node` will be called by default.
-- For passing tcaptcha, `opencv-python` is needed.
+- Uin-Password login needs to execute JavaScript. `NodeJS` is used;
+- `opencv-python` is needed for captcha image processing;
+- `PyYaml` will be needed for cv debugging and development.
 
 ## License
 
 - [AGPL-3.0](https://github.com/JamzumSum/QQQR/blob/master/LICENCE)
 - All commercial uses are __NOT__ supported
+
+### Third Party
+
+- opencv-python: https://github.com/opencv/opencv-python#licensing
 
 
 [qzone2tg]: https://github.com/JamzumSum/Qzone2TG "Forward Qzone Feeds to Telegram"

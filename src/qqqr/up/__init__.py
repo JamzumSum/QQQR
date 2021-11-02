@@ -4,10 +4,9 @@ from random import choice, random
 from time import time_ns
 
 from jssupport.execjs import ExecJS
-from requests.exceptions import HTTPError
-from tencentlogin.constants import StatusCode
 
 from ..base import LoginBase
+from ..constants import StatusCode
 from ..exception import TencentLoginError
 from ..type import APPID, PT_QR_APP, Proxy
 
@@ -88,7 +87,7 @@ class UPLogin(LoginBase):
             'pt_vcode': 1,
             'uin': self.user.uin,
             'appid': self.app.appid,
-            # 'js_ver': 21072114,
+                                                                               # 'js_ver': 21072114,
             'js_type': 1,
             'login_sig': self.session.cookies.get('pt_login_sig', default=''),
             'u1': self.proxy.s_url,
@@ -96,20 +95,20 @@ class UPLogin(LoginBase):
             'pt_uistyle': 40,
         }
         r = self.session.get(CHECK_URL, params=data, headers=self.header)
-        if r.status_code != 200: raise HTTPError(response=r)
+        r.raise_for_status()
 
         r = re.findall(r"'(.*?)'[,\)]", r.text)
         r[0] = int(r[0])
         return CheckResult(*r)
 
-    def login(self, r: CheckResult, all_cookie=False, pastcode: int = 0):
+    def login(self, r: CheckResult, pastcode: int = 0) -> dict[str, str]:
 
         if r.code == StatusCode.Authenticated:
             # OK
             pass
         elif r.code == StatusCode.NeedCaptcha and pastcode == 0:
             # 0 -> 1: OK; !0 -> 1: Error
-            self.login(self.passVC(r), all_cookie, StatusCode.NeedCaptcha)
+            self.login(self.passVC(r), StatusCode.NeedCaptcha)
         elif r.code == StatusCode.NeedVerify and pastcode != StatusCode.NeedVerify:
             # !10009 -> 10009: OK; 10009 -> 10009: Error
             raise NotImplementedError('wait for next version :D')
@@ -131,7 +130,7 @@ class UPLogin(LoginBase):
             'from_ui': 1,
             'ptlang': 2052,
             'action': f"{3 if pastcode == StatusCode.NeedCaptcha else 2}-{choice([1, 2])}-{int(time_ns() / 1e6)}",
-            # 'js_ver': 21072114,
+                                                                                                                   # 'js_ver': 21072114,
             'js_type': 1,
             'login_sig': self.session.cookies.get('pt_login_sig', default=''),
             'pt_uistyle': 40,
@@ -142,7 +141,7 @@ class UPLogin(LoginBase):
         }
         self.header['Referer'] = 'https://xui.ptlogin2.qq.com/'
         response = self.session.get(LOGIN_URL, params=data, headers=self.header)
-        if response.status_code != 200: raise HTTPError(response=response)
+        response.raise_for_status()
 
         r = re.findall(r"'(.*?)'[,\)]", response.text)
         r[0] = int(r[0])
@@ -151,11 +150,7 @@ class UPLogin(LoginBase):
             raise TencentLoginError(r[0], r[4])
 
         response = self.session.get(r[2], allow_redirects=False, headers=self.header)
-        if all_cookie:
-            r: dict = response.cookies.get_dict()
-        else:
-            r: str = response.cookies['p_skey']
-        return r
+        return response.cookies.get_dict()
 
     def captcha(self, sid: str):
         if not self._captcha:
