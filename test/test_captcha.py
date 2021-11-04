@@ -1,4 +1,3 @@
-import asyncio
 from math import floor
 from os import environ as env
 
