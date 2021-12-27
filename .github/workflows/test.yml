@@ -34,4 +34,4 @@ jobs:
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
           export PYTHONPATH=$(pwd)/src
-          python -m pytest test
+          python -m pytest -v test
