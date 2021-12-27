@@ -222,7 +222,8 @@ class Captcha:
         header['cookie'] = '; '.join(
             f"{k}={v}" for k, v in self.session.cookies.get_dict().items()
         )
-        self.vm = VM(self.session.get(js_url, headers=self.header).text, header=header)
+        js = self.session.get(js_url, headers=self.header).text
+        self.vm = VM(js, header=header)
         c = re.search(r'TDC_itoken=([\w%]+);', self.vm.getCookie()).group(1)
         self.session.cookies.update({'TDC_itoken': c})
         return self.vm
